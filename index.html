@@ -46,10 +46,8 @@
 
     <div id="page-loading" class="page-loading" hidden>Opening book…</div>
 
-    <!-- tap zones for page turning -->
-    <div id="tap-prev" class="tap-zone tap-prev" aria-hidden="true"></div>
+    <!-- tap anywhere to show/hide the toolbar -->
     <div id="tap-toggle" class="tap-zone tap-toggle" aria-hidden="true"></div>
-    <div id="tap-next" class="tap-zone tap-next" aria-hidden="true"></div>
 
     <main id="page" class="page">
       <div class="page-number-top" id="page-number-top">1</div>
@@ -57,12 +55,18 @@
     </main>
 
     <footer class="page-footer">
-      <div class="progress-track">
-        <div class="progress-fill" id="progress-fill"></div>
-      </div>
-      <div class="footer-meta">
-        <span id="location-label"></span>
-        <span id="percent-label"></span>
+      <div class="nav-row">
+        <button id="prev-btn" class="nav-arrow" aria-label="Previous page">‹</button>
+        <div class="progress-wrap">
+          <div class="progress-track">
+            <div class="progress-fill" id="progress-fill"></div>
+          </div>
+          <div class="footer-meta">
+            <span id="location-label"></span>
+            <span id="percent-label"></span>
+          </div>
+        </div>
+        <button id="next-btn" class="nav-arrow" aria-label="Next page">›</button>
       </div>
     </footer>
 

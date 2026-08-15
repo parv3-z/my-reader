@@ -45,9 +45,9 @@ const measureEl = document.getElementById("measure");
 const progressFill = document.getElementById("progress-fill");
 const locationLabel = document.getElementById("location-label");
 const percentLabel = document.getElementById("percent-label");
-const tapPrev = document.getElementById("tap-prev");
-const tapNext = document.getElementById("tap-next");
 const tapToggle = document.getElementById("tap-toggle");
+const prevBtn = document.getElementById("prev-btn");
+const nextBtn = document.getElementById("next-btn");
 const fontSmaller = document.getElementById("font-smaller");
 const fontLarger = document.getElementById("font-larger");
 
@@ -300,11 +300,14 @@ function assignOffsets(pages) {
 function renderPage() {
   const pg = pages[pageIndex] || [];
   pageContentEl.innerHTML = renderBlocksHtml(pg);
+  pageContentEl.scrollTop = 0;
   pageNumberTop.textContent = String(pageIndex + 1);
   const pct = Math.min(100, Math.round((pg._start / totalChars) * 100));
   progressFill.style.width = pct + "%";
   locationLabel.textContent = `Page ${pageIndex + 1} / ${pages.length}`;
   percentLabel.textContent = `${pct}%`;
+  prevBtn.disabled = pageIndex === 0;
+  nextBtn.disabled = pageIndex === pages.length - 1;
   saveBookmark();
 }
 
@@ -384,9 +387,25 @@ themeToggle.addEventListener("click", () => {
 });
 
 backBtn.addEventListener("click", closeBook);
-tapNext.addEventListener("click", goNext);
-tapPrev.addEventListener("click", goPrev);
+nextBtn.addEventListener("click", goNext);
+prevBtn.addEventListener("click", goPrev);
 tapToggle.addEventListener("click", toggleBar);
+
+// swipe left/right to turn pages (mobile). Only fires on a mostly-horizontal
+// drag so it never fights with vertical scrolling inside a page.
+let touchStartX = 0, touchStartY = 0;
+pageEl.addEventListener("touchstart", (e) => {
+  touchStartX = e.changedTouches[0].clientX;
+  touchStartY = e.changedTouches[0].clientY;
+}, { passive: true });
+
+pageEl.addEventListener("touchend", (e) => {
+  const dx = e.changedTouches[0].clientX - touchStartX;
+  const dy = e.changedTouches[0].clientY - touchStartY;
+  if (Math.abs(dx) > 48 && Math.abs(dx) > Math.abs(dy) * 1.4) {
+    if (dx < 0) goNext(); else goPrev();
+  }
+}, { passive: true });
 
 document.addEventListener("keydown", (e) => {
   if (readerView.hidden) return;

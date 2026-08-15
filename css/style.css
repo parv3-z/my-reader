@@ -241,8 +241,12 @@ body[data-theme="sepia"] .theme-swatch { background: #edebe4; }
   font-size: var(--reader-font-size);
   line-height: var(--reader-line-height);
   color: var(--ink);
-  overflow: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
 }
+
+.page-content::-webkit-scrollbar { display: none; }
 
 .page-content p {
   margin: 0 0 1em;
@@ -272,23 +276,58 @@ body[data-theme="sepia"] .theme-swatch { background: #edebe4; }
   z-index: -1;
 }
 
-/* tap zones for page turning */
+/* single full-page tap zone — toggles the toolbar, doesn't block scrolling
+   because a drag/scroll gesture never fires a click event */
 .tap-zone {
   position: absolute;
-  top: 56px; bottom: 52px;
+  top: 56px; bottom: 78px;
+  left: 0; right: 0;
   z-index: 10;
 }
-.tap-prev { left: 0; width: 22%; }
-.tap-toggle { left: 22%; width: 56%; }
-.tap-next { right: 0; width: 22%; }
 
 .page-footer {
-  height: 52px;
+  height: 78px;
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+}
+
+.nav-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+
+.nav-arrow {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid var(--rail);
+  background: var(--paper-deep);
+  color: var(--ink);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nav-arrow:active { background: var(--rail); }
+
+.nav-arrow:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.progress-wrap {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  padding: 0 28px;
   gap: 6px;
+  min-width: 0;
 }
 
 .progress-track {
@@ -316,5 +355,5 @@ body[data-theme="sepia"] .theme-swatch { background: #edebe4; }
 @media (max-width: 480px) {
   .page-content { padding: 50px 22px 40px; }
   .page-number-top { left: 20px; top: 18px; }
-  .page-footer { padding: 0 22px; }
+  .page-footer { padding: 0 8px; }
 }
