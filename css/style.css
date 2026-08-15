@@ -217,6 +217,8 @@ body[data-theme="sepia"] .theme-swatch { background: #edebe4; }
   z-index: 5;
 }
 
+.page-loading[hidden] { display: none; }
+
 .page {
   position: relative;
   flex: 1;
