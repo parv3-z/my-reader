@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Reader</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- ===================== LIBRARY VIEW ===================== -->
+  <section id="library-view" class="view">
+    <header class="library-header">
+      <h1>Library</h1>
+      <input
+        id="search-input"
+        class="search-input"
+        type="text"
+        placeholder="Search by title or author…"
+        autocomplete="off"
+      />
+    </header>
+    <div id="shelf" class="shelf"></div>
+    <p id="empty-state" class="empty-state" hidden>
+      No books yet. Add a PDF to the <code>/books</code> folder and register
+      it in <code>js/books.js</code>.
+    </p>
+    <p id="no-results" class="empty-state" hidden>
+      No books match your search.
+    </p>
+  </section>
+
+  <!-- ===================== READER VIEW ===================== -->
+  <section id="reader-view" class="view" hidden>
+
+    <!-- top bar, hidden until tapped -->
+    <header id="reader-bar" class="reader-bar">
+      <button id="back-btn" class="icon-btn" aria-label="Back to library">‹ Library</button>
+      <span id="reader-title" class="reader-title"></span>
+      <div class="type-controls">
+        <button id="theme-toggle" class="icon-btn theme-swatch" aria-label="Toggle reading mode"></button>
+        <button id="font-smaller" class="icon-btn" aria-label="Smaller text">A−</button>
+        <button id="font-larger" class="icon-btn" aria-label="Larger text">A+</button>
+      </div>
+    </header>
+
+    <div id="page-loading" class="page-loading" hidden>Opening book…</div>
+
+    <!-- tap zones for page turning -->
+    <div id="tap-prev" class="tap-zone tap-prev" aria-hidden="true"></div>
+    <div id="tap-toggle" class="tap-zone tap-toggle" aria-hidden="true"></div>
+    <div id="tap-next" class="tap-zone tap-next" aria-hidden="true"></div>
+
+    <main id="page" class="page">
+      <div class="page-number-top" id="page-number-top">1</div>
+      <div class="page-content" id="page-content"></div>
+    </main>
+
+    <footer class="page-footer">
+      <div class="progress-track">
+        <div class="progress-fill" id="progress-fill"></div>
+      </div>
+      <div class="footer-meta">
+        <span id="location-label"></span>
+        <span id="percent-label"></span>
+      </div>
+    </footer>
+
+    <!-- off-screen element used purely to measure text pagination -->
+    <div id="measure" class="page-content measure" aria-hidden="true"></div>
+  </section>
+
+  <script src="js/pdf.min.js"></script>
+  <script src="js/books.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

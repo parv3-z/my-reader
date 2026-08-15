@@ -1,0 +1,318 @@
+/* ============================================================
+   TOKENS
+   Palette: paper #EDEBE4, ink #2A2A28, ink-soft #6B6963,
+            rail #D8D5CC, accent #8A8677 (all warm, e-ink toned)
+   Type: Georgia (body/serif reading face) + system-ui (chrome)
+   ============================================================ */
+
+:root {
+  --paper: #edebe4;
+  --paper-deep: #e4e1d8;
+  --ink: #2a2a28;
+  --ink-soft: #6b6963;
+  --rail: #d8d5cc;
+  --accent: #8a8677;
+
+  --reader-font-size: 19px;
+  --reader-line-height: 1.7;
+}
+
+/* sepia / "yellowish" reading mode — applied to #reader-view only */
+body[data-theme="sepia"] #reader-view {
+  --paper: #f2e4bd;
+  --paper-deep: #ecd9a6;
+  --ink: #5b4324;
+  --ink-soft: #8a7248;
+  --rail: #e0c98e;
+  --accent: #a3823f;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  user-select: none;
+}
+
+.view { height: 100vh; width: 100vw; }
+
+/* ===================== LIBRARY ===================== */
+
+#library-view {
+  overflow-y: auto;
+  padding: 48px 28px 40px;
+}
+
+.library-header {
+  max-width: 720px;
+  margin-bottom: 28px;
+}
+
+.library-header h1 {
+  font-family: Georgia, "Iowan Old Style", serif;
+  font-weight: 400;
+  font-size: 30px;
+  letter-spacing: 0.02em;
+  margin: 0 0 16px 2px;
+  color: var(--ink);
+}
+
+.search-input {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--rail);
+  background: var(--paper-deep);
+  color: var(--ink);
+  border-radius: 6px;
+  padding: 10px 14px;
+  font-size: 14px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  outline: none;
+}
+
+.search-input::placeholder { color: var(--ink-soft); }
+
+.search-input:focus {
+  border-color: var(--accent);
+}
+
+.shelf {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(128px, 1fr));
+  gap: 28px 20px;
+  max-width: 720px;
+}
+
+.book-tile { cursor: pointer; }
+
+.book-cover {
+  aspect-ratio: 2 / 3;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px;
+  text-align: center;
+  box-shadow:
+    0 1px 2px rgba(0,0,0,0.12),
+    0 6px 14px rgba(0,0,0,0.10);
+  border: 1px solid rgba(0,0,0,0.06);
+}
+
+.book-cover .cover-title {
+  font-family: Georgia, "Iowan Old Style", serif;
+  font-size: 14px;
+  line-height: 1.3;
+  color: rgba(255,255,255,0.94);
+}
+
+.book-meta { margin-top: 9px; }
+
+.book-meta .t {
+  font-size: 12.5px;
+  color: var(--ink);
+  line-height: 1.3;
+  display: block;
+}
+
+.book-meta .a {
+  font-size: 11.5px;
+  color: var(--ink-soft);
+  display: block;
+  margin-top: 2px;
+}
+
+.empty-state {
+  color: var(--ink-soft);
+  font-size: 14px;
+  line-height: 1.6;
+  max-width: 420px;
+}
+
+.empty-state code {
+  background: var(--paper-deep);
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 12.5px;
+}
+
+/* ===================== READER ===================== */
+
+#reader-view {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: var(--paper);
+  color: var(--ink);
+  transition: background 0.25s ease, color 0.25s ease;
+}
+
+.reader-bar {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 14px;
+  background: var(--paper);
+  border-bottom: 1px solid var(--rail);
+  transform: translateY(-100%);
+  transition: transform 0.22s ease;
+  z-index: 30;
+}
+
+.reader-bar.visible { transform: translateY(0); }
+
+.icon-btn {
+  background: none;
+  border: none;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 14px;
+  color: var(--ink);
+  padding: 8px 10px;
+  cursor: pointer;
+}
+
+.reader-title {
+  font-size: 12.5px;
+  color: var(--ink-soft);
+  max-width: 45%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.type-controls { display: flex; align-items: center; gap: 8px; }
+
+.theme-swatch {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  padding: 0;
+  border: 1px solid var(--rail);
+  background: #f2e4bd;
+  cursor: pointer;
+}
+
+body[data-theme="sepia"] .theme-swatch { background: #edebe4; }
+
+.page-loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-soft);
+  font-size: 14px;
+  z-index: 5;
+}
+
+.page {
+  position: relative;
+  flex: 1;
+  overflow: hidden;
+}
+
+.page-number-top {
+  position: absolute;
+  top: 22px;
+  left: 26px;
+  font-size: 12px;
+  color: var(--ink-soft);
+  font-family: Georgia, serif;
+}
+
+.page-content {
+  height: 100%;
+  padding: 58px 30px 46px;
+  font-family: Georgia, "Iowan Old Style", "Palatino Linotype", serif;
+  font-size: var(--reader-font-size);
+  line-height: var(--reader-line-height);
+  color: var(--ink);
+  overflow: hidden;
+}
+
+.page-content p {
+  margin: 0 0 1em;
+  text-align: left;
+  text-indent: 1.4em;
+}
+
+.page-content p:first-child { text-indent: 0; }
+
+.page-content .heading {
+  font-size: 1.25em;
+  text-indent: 0;
+  margin: 0.2em 0 0.9em;
+  letter-spacing: 0.01em;
+}
+
+.page-content .heading + p { text-indent: 0; }
+
+.measure {
+  position: absolute;
+  visibility: hidden;
+  pointer-events: none;
+  top: 0; left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  z-index: -1;
+}
+
+/* tap zones for page turning */
+.tap-zone {
+  position: absolute;
+  top: 56px; bottom: 52px;
+  z-index: 10;
+}
+.tap-prev { left: 0; width: 22%; }
+.tap-toggle { left: 22%; width: 56%; }
+.tap-next { right: 0; width: 22%; }
+
+.page-footer {
+  height: 52px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 0 28px;
+  gap: 6px;
+}
+
+.progress-track {
+  height: 2px;
+  background: var(--rail);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--accent);
+  width: 0%;
+  transition: width 0.15s ease;
+}
+
+.footer-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--ink-soft);
+  font-family: Georgia, serif;
+}
+
+@media (max-width: 480px) {
+  .page-content { padding: 50px 22px 40px; }
+  .page-number-top { left: 20px; top: 18px; }
+  .page-footer { padding: 0 22px; }
+}
