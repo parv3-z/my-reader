@@ -238,17 +238,23 @@ body[data-theme="sepia"] .theme-swatch { background: #edebe4; }
 
 .page-content {
   height: 100%;
-  padding: 58px 30px 46px;
+  padding: 58px 22px 46px 30px;
   font-family: Georgia, "Iowan Old Style", "Palatino Linotype", serif;
   font-size: var(--reader-font-size);
   line-height: var(--reader-line-height);
   color: var(--ink);
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
+  scrollbar-width: thin;
+  scrollbar-color: var(--accent) transparent;
 }
 
-.page-content::-webkit-scrollbar { display: none; }
+.page-content::-webkit-scrollbar { width: 6px; }
+.page-content::-webkit-scrollbar-track { background: transparent; }
+.page-content::-webkit-scrollbar-thumb {
+  background: var(--accent);
+  border-radius: 3px;
+}
 
 .page-content p {
   margin: 0 0 1em;
@@ -274,7 +280,7 @@ body[data-theme="sepia"] .theme-swatch { background: #edebe4; }
 .tap-zone {
   position: absolute;
   top: 56px; bottom: 78px;
-  left: 0; right: 0;
+  left: 0; right: 10px;
   z-index: 10;
 }
 
