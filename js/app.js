@@ -2,6 +2,11 @@
    OFFLINE E-READER
    All PDF parsing happens locally via the bundled pdf.js — no
    network requests are ever made. Books come only from js/books.js.
+
+   Pagination model: each app "page" is exactly one PDF page's
+   content — nothing reflows across page boundaries, and font-size
+   changes never move content to a different page. If a page's text
+   doesn't fit at a larger font size, that page scrolls instead.
    ============================================================ */
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = "js/pdf.worker.min.js";
@@ -41,7 +46,6 @@ const pageLoading = document.getElementById("page-loading");
 const pageEl = document.getElementById("page");
 const pageContentEl = document.getElementById("page-content");
 const pageNumberTop = document.getElementById("page-number-top");
-const measureEl = document.getElementById("measure");
 const progressFill = document.getElementById("progress-fill");
 const locationLabel = document.getElementById("location-label");
 const percentLabel = document.getElementById("percent-label");
@@ -52,10 +56,9 @@ const fontSmaller = document.getElementById("font-smaller");
 const fontLarger = document.getElementById("font-larger");
 
 // ---------- reader session state ----------
-let currentBook = null;      // entry from LIBRARY
-let pages = [];              // array of arrays of blocks
+let currentBook = null;   // entry from LIBRARY
+let pages = [];           // array of per-PDF-page block arrays — pages[i] = PDF page i+1
 let pageIndex = 0;
-let totalChars = 1;
 
 // ============================================================
 // LIBRARY VIEW
@@ -107,34 +110,79 @@ function renderShelf(filterText = "") {
 }
 
 // ============================================================
-// TEXT EXTRACTION -> BLOCKS
+// TEXT EXTRACTION — one block list per PDF page (no cross-page merging)
 // ============================================================
 
-async function extractBlocks(pdf) {
+function buildBlocksForPage(lines) {
   const blocks = [];
-  let prevLine = null; // {x, width, fontSize}
+  let prevLine = null;
   let typicalWidth = 0;
   let typicalX = null;
-
-  // pending line accumulator across the whole document
   let paraText = "";
   let paraIsHeading = false;
+
+  const widths = lines.map((l) => l.width).filter((w) => w > 20);
+  typicalWidth = widths.length ? Math.max(...widths) : 0;
+  const bodyFontSizes = lines.map((l) => l.fontSize).sort((a, b) => a - b);
+  const medianFont = bodyFontSizes.length
+    ? bodyFontSizes[Math.floor(bodyFontSizes.length / 2)]
+    : 10;
 
   function flushPara() {
     const text = paraText.replace(/\s+/g, " ").trim();
     paraText = "";
     if (!text) return;
-    // skip lines that are just stray page numbers
-    if (/^[0-9ivxlcIVXLC]{1,5}$/.test(text)) return;
+    if (/^[0-9ivxlcIVXLC]{1,5}$/.test(text)) return; // stray page number
     blocks.push({ type: paraIsHeading ? "heading" : "para", text });
   }
 
+  for (const line of lines) {
+    const text = line.text.trim();
+    if (!text) continue;
+    if (typicalX === null) typicalX = line.x;
+
+    const isHeading = line.fontSize > medianFont * 1.25 && text.length < 90;
+    const endedShort = prevLine && prevLine.width < typicalWidth * 0.82;
+    const indented = line.x > typicalX + line.fontSize * 0.8;
+    const bigGap = prevLine && Math.abs(line.y - prevLine.y) > line.fontSize * 2.2;
+
+    const newPara =
+      !prevLine || isHeading || paraIsHeading !== isHeading ||
+      endedShort || indented || bigGap;
+
+    if (newPara) {
+      flushPara();
+      paraIsHeading = isHeading;
+      paraText = text;
+    } else {
+      paraText += " " + text;
+    }
+    prevLine = line;
+  }
+  flushPara();
+
+  // fold a lone oversized drop-cap letter back onto the paragraph after it
+  const merged = [];
+  for (let i = 0; i < blocks.length; i++) {
+    const b = blocks[i];
+    const next = blocks[i + 1];
+    if (b.type === "heading" && b.text.length <= 2 && next && next.type === "para") {
+      merged.push({ type: "para", text: b.text + next.text });
+      i++;
+    } else {
+      merged.push(b);
+    }
+  }
+  return merged;
+}
+
+async function extractPages(pdf) {
+  const result = [];
   for (let p = 1; p <= pdf.numPages; p++) {
     const page = await pdf.getPage(p);
     const content = await page.getTextContent();
     const items = content.items;
 
-    // group items into lines by y position
     const lines = [];
     let curLine = null;
     for (const item of items) {
@@ -146,8 +194,6 @@ async function extractBlocks(pdf) {
         if (curLine) lines.push(curLine);
         curLine = { x, y, width: 0, fontSize, text: "", lastEndX: null };
       }
-      // some PDFs (esp. decorative headings) place letters as separate
-      // items without a literal space character — infer one from the gap
       if (curLine.lastEndX !== null && x - curLine.lastEndX > fontSize * 0.22) {
         curLine.text += " ";
       }
@@ -159,59 +205,13 @@ async function extractBlocks(pdf) {
     }
     if (curLine) lines.push(curLine);
 
-    // estimate body column stats from this page
-    const widths = lines.map((l) => l.width).filter((w) => w > 20);
-    const pageTypicalWidth = widths.length ? Math.max(...widths) : 0;
-    if (pageTypicalWidth > typicalWidth) typicalWidth = pageTypicalWidth;
-    const bodyFontSizes = lines.map((l) => l.fontSize).sort((a, b) => a - b);
-    const medianFont = bodyFontSizes.length
-      ? bodyFontSizes[Math.floor(bodyFontSizes.length / 2)]
-      : 10;
-
-    for (const line of lines) {
-      const text = line.text.trim();
-      if (!text) continue;
-      if (typicalX === null) typicalX = line.x;
-
-      const isHeading = line.fontSize > medianFont * 1.25 && text.length < 90;
-      const endedShort = prevLine && prevLine.width < typicalWidth * 0.82;
-      const indented = line.x > typicalX + line.fontSize * 0.8;
-      const bigGap = prevLine && Math.abs(line.y - prevLine.y) > line.fontSize * 2.2;
-
-      const newPara =
-        !prevLine || isHeading || paraIsHeading !== isHeading ||
-        endedShort || indented || bigGap;
-
-      if (newPara) {
-        flushPara();
-        paraIsHeading = isHeading;
-        paraText = text;
-      } else {
-        paraText += " " + text;
-      }
-      prevLine = line;
-    }
+    result.push(buildBlocksForPage(lines));
   }
-  flushPara();
-
-  // fold stray drop-cap fragments (a lone oversized first letter that got
-  // read as its own "heading") back onto the paragraph that follows it
-  const merged = [];
-  for (let i = 0; i < blocks.length; i++) {
-    const b = blocks[i];
-    const next = blocks[i + 1];
-    if (b.type === "heading" && b.text.length <= 2 && next && next.type === "para") {
-      merged.push({ type: "para", text: b.text + next.text });
-      i++; // skip the paragraph we just merged
-    } else {
-      merged.push(b);
-    }
-  }
-  return merged;
+  return result;
 }
 
 // ============================================================
-// PAGINATION
+// RENDERING
 // ============================================================
 
 function escapeHtml(s) {
@@ -222,76 +222,10 @@ function escapeHtml(s) {
 
 function blockHtml(b) {
   if (b.type === "heading") return `<div class="heading">${escapeHtml(b.text)}</div>`;
-  const cls = b.continued ? ' class="continued"' : "";
-  return `<p${cls}>${escapeHtml(b.text)}</p>`;
+  return `<p>${escapeHtml(b.text)}</p>`;
 }
 
 function renderBlocksHtml(arr) { return arr.map(blockHtml).join(""); }
-
-function fitsMeasure(html) {
-  measureEl.innerHTML = html;
-  return measureEl.scrollHeight <= measureEl.clientHeight + 1;
-}
-
-function splitBlockToFit(current, block) {
-  const words = block.text.split(" ");
-  let lo = 1, hi = words.length, best = 0;
-  while (lo <= hi) {
-    const mid = (lo + hi) >> 1;
-    const testBlock = { ...block, text: words.slice(0, mid).join(" ") };
-    const html = renderBlocksHtml(current.concat([testBlock]));
-    if (fitsMeasure(html)) { best = mid; lo = mid + 1; } else { hi = mid - 1; }
-  }
-  if (best === 0) best = 1;
-  const fitText = words.slice(0, best).join(" ");
-  const restText = words.slice(best).join(" ");
-  const fitPart = { ...block, text: fitText };
-  const remainder = restText ? { ...block, text: restText, continued: true } : null;
-  return { fitPart, remainder };
-}
-
-function paginate(blocks) {
-  // size the measurement box to match the live page box
-  measureEl.style.width = pageContentEl.clientWidth + "px";
-  measureEl.style.height = pageContentEl.clientHeight + "px";
-
-  const queue = blocks.slice();
-  const result = [];
-  let current = [];
-
-  while (queue.length) {
-    const block = queue.shift();
-    const candidate = current.concat([block]);
-    if (fitsMeasure(renderBlocksHtml(candidate))) {
-      current = candidate;
-      continue;
-    }
-    if (current.length > 0) {
-      result.push(current);
-      current = [];
-      queue.unshift(block);
-      continue;
-    }
-    // block alone doesn't fit an empty page — split it
-    const { fitPart, remainder } = splitBlockToFit(current, block);
-    current.push(fitPart);
-    result.push(current);
-    current = [];
-    if (remainder) queue.unshift(remainder);
-  }
-  if (current.length) result.push(current);
-  return result;
-}
-
-function assignOffsets(pages) {
-  let cursor = 0;
-  pages.forEach((pg) => {
-    pg._start = cursor;
-    pg.forEach((b) => { cursor += b.text.length + 1; });
-    pg._end = cursor;
-  });
-  totalChars = Math.max(cursor, 1);
-}
 
 // ============================================================
 // READER RENDERING / NAVIGATION
@@ -302,7 +236,9 @@ function renderPage() {
   pageContentEl.innerHTML = renderBlocksHtml(pg);
   pageContentEl.scrollTop = 0;
   pageNumberTop.textContent = String(pageIndex + 1);
-  const pct = Math.min(100, Math.round((pg._start / totalChars) * 100));
+  const pct = pages.length > 1
+    ? Math.round((pageIndex / (pages.length - 1)) * 100)
+    : 100;
   progressFill.style.width = pct + "%";
   locationLabel.textContent = `Page ${pageIndex + 1} / ${pages.length}`;
   percentLabel.textContent = `${pct}%`;
@@ -313,20 +249,16 @@ function renderPage() {
 
 function saveBookmark() {
   if (!currentBook) return;
-  const pg = pages[pageIndex];
-  if (!pg) return;
-  localStorage.setItem(bookmarkKey(currentBook.id), String(pg._start));
+  localStorage.setItem(bookmarkKey(currentBook.id), String(pageIndex));
 }
 
 function loadBookmarkPageIndex() {
   if (!currentBook) return 0;
   const raw = localStorage.getItem(bookmarkKey(currentBook.id));
   if (raw == null) return 0;
-  const offset = Number(raw);
-  for (let i = 0; i < pages.length; i++) {
-    if (offset >= pages[i]._start && offset < pages[i]._end) return i;
-  }
-  return 0;
+  const idx = Number(raw);
+  if (!Number.isFinite(idx) || idx < 0 || idx >= pages.length) return 0;
+  return idx;
 }
 
 function goNext() {
@@ -354,9 +286,7 @@ async function openBook(book) {
   try {
     const loadingTask = pdfjsLib.getDocument({ url: book.file });
     const pdf = await loadingTask.promise;
-    const blocks = await extractBlocks(pdf);
-    pages = paginate(blocks);
-    assignOffsets(pages);
+    pages = await extractPages(pdf);
     pageIndex = loadBookmarkPageIndex();
     pageLoading.hidden = true;
     renderPage();
@@ -414,38 +344,15 @@ document.addEventListener("keydown", (e) => {
   else if (e.key === "Escape") closeBook();
 });
 
+// font size only changes how big the text renders — it never changes which
+// content is on which page. If it no longer fits, the page scrolls.
 function changeFontSize(delta) {
   prefs.fontSize = Math.max(14, Math.min(28, prefs.fontSize + delta));
   savePrefs(prefs);
   document.documentElement.style.setProperty("--reader-font-size", prefs.fontSize + "px");
-  if (!currentBook) return;
-  const offset = pages[pageIndex] ? pages[pageIndex]._start : 0;
-  // repaginate at new size, keep the reader's place
-  requestAnimationFrame(() => {
-    const flat = pages.flat();
-    pages = paginate(flat);
-    assignOffsets(pages);
-    pageIndex = 0;
-    for (let i = 0; i < pages.length; i++) {
-      if (offset >= pages[i]._start && offset < pages[i]._end) { pageIndex = i; break; }
-    }
-    renderPage();
-  });
 }
 fontSmaller.addEventListener("click", () => changeFontSize(-1));
 fontLarger.addEventListener("click", () => changeFontSize(1));
-
-window.addEventListener("resize", () => {
-  if (!currentBook || !pages.length) return;
-  const offset = pages[pageIndex]._start;
-  pages = paginate(pages.flat());
-  assignOffsets(pages);
-  pageIndex = 0;
-  for (let i = 0; i < pages.length; i++) {
-    if (offset >= pages[i]._start && offset < pages[i]._end) { pageIndex = i; break; }
-  }
-  renderPage();
-});
 
 // ---------- boot ----------
 renderShelf();
