@@ -27,6 +27,16 @@ body[data-theme="sepia"] #reader-view {
   --accent: #a3823f;
 }
 
+/* dark mode */
+body[data-theme="dark"] #reader-view {
+  --paper: #1c1c1a;
+  --paper-deep: #262624;
+  --ink: #d9d6cd;
+  --ink-soft: #948f83;
+  --rail: #3a3a37;
+  --accent: #b7ab8a;
+}
+
 * { box-sizing: border-box; }
 
 html, body {
@@ -161,11 +171,8 @@ body {
 .reader-bar {
   position: absolute;
   top: 0; left: 0; right: 0;
-  height: 56px;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 14px;
+  flex-direction: column;
   background: var(--paper);
   border-bottom: 1px solid var(--rail);
   transform: translateY(-100%);
@@ -174,6 +181,37 @@ body {
 }
 
 .reader-bar.visible { transform: translateY(0); }
+
+.reader-bar-row {
+  height: 56px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 14px;
+}
+
+.marks-row {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 0 14px 12px;
+}
+
+.mark-chip {
+  flex: none;
+  border: 1px solid var(--rail);
+  background: var(--paper-deep);
+  color: var(--ink);
+  border-radius: 14px;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-family: Georgia, serif;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.mark-chip:active { background: var(--rail); }
 
 .icon-btn {
   background: none;
@@ -196,17 +234,29 @@ body {
 
 .type-controls { display: flex; align-items: center; gap: 8px; }
 
+.bookmark-btn {
+  font-size: 15px;
+  opacity: 0.4;
+  filter: grayscale(1);
+}
+
+.bookmark-btn.active {
+  opacity: 1;
+  filter: none;
+}
+
 .theme-swatch {
   width: 20px;
   height: 20px;
   border-radius: 50%;
   padding: 0;
   border: 1px solid var(--rail);
-  background: #f2e4bd;
+  background: #edebe4;
   cursor: pointer;
 }
 
 body[data-theme="sepia"] .theme-swatch { background: #edebe4; }
+body[data-theme="dark"] .theme-swatch { background: #1c1c1a; border-color: #3a3a37; }
 
 .page-loading {
   position: absolute;
@@ -235,6 +285,9 @@ body[data-theme="sepia"] .theme-swatch { background: #edebe4; }
   font-size: 12px;
   color: var(--ink-soft);
   font-family: Georgia, serif;
+  background: var(--paper);
+  padding: 2px 8px 2px 0;
+  z-index: 2;
 }
 
 .page-content {

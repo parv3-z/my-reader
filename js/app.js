@@ -14,6 +14,19 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = "js/pdf.worker.min.js";
 // ---------- persisted state ----------
 const PREFS_KEY = "reader.prefs";
 const bookmarkKey = (id) => `reader.bookmark.${id}`;
+const marksKey = (id) => `reader.marks.${id}`;
+
+function loadMarks() {
+  if (!currentBook) return [];
+  try {
+    const raw = JSON.parse(localStorage.getItem(marksKey(currentBook.id)));
+    return Array.isArray(raw) ? raw : [];
+  } catch { return []; }
+}
+function saveMarks(marks) {
+  if (!currentBook) return;
+  localStorage.setItem(marksKey(currentBook.id), JSON.stringify(marks));
+}
 
 function loadPrefs() {
   try {
@@ -53,6 +66,8 @@ const prevBtn = document.getElementById("prev-btn");
 const nextBtn = document.getElementById("next-btn");
 const fontSmaller = document.getElementById("font-smaller");
 const fontLarger = document.getElementById("font-larger");
+const bookmarkToggle = document.getElementById("bookmark-toggle");
+const marksRow = document.getElementById("marks-row");
 
 // ---------- reader session state ----------
 let currentBook = null;   // entry from LIBRARY
@@ -244,6 +259,33 @@ function renderPage() {
   prevBtn.disabled = pageIndex === 0;
   nextBtn.disabled = pageIndex === pages.length - 1;
   saveBookmark();
+  renderMarksUI();
+}
+
+function renderMarksUI() {
+  const marks = loadMarks();
+  bookmarkToggle.classList.toggle("active", marks.includes(pageIndex));
+
+  if (!marks.length) {
+    marksRow.hidden = true;
+    marksRow.innerHTML = "";
+    return;
+  }
+  marksRow.hidden = false;
+  marksRow.innerHTML = marks
+    .slice()
+    .sort((a, b) => a - b)
+    .map((i) => `<button class="mark-chip" data-page="${i}">Page ${i + 1}</button>`)
+    .join("");
+}
+
+function toggleBookmark() {
+  const marks = loadMarks();
+  const at = marks.indexOf(pageIndex);
+  if (at === -1) marks.push(pageIndex);
+  else marks.splice(at, 1);
+  saveMarks(marks);
+  renderMarksUI();
 }
 
 function saveBookmark() {
@@ -301,6 +343,8 @@ function closeBook() {
   libraryView.hidden = false;
   currentBook = null;
   pages = [];
+  marksRow.hidden = true;
+  marksRow.innerHTML = "";
 }
 
 // ============================================================
@@ -310,9 +354,20 @@ function closeBook() {
 searchInput.addEventListener("input", (e) => renderShelf(e.target.value));
 
 themeToggle.addEventListener("click", () => {
-  prefs.theme = prefs.theme === "sepia" ? "paper" : "sepia";
+  const order = ["paper", "sepia", "dark"];
+  const next = order[(order.indexOf(prefs.theme) + 1) % order.length];
+  prefs.theme = next;
   savePrefs(prefs);
   applyTheme();
+});
+
+bookmarkToggle.addEventListener("click", toggleBookmark);
+
+marksRow.addEventListener("click", (e) => {
+  const chip = e.target.closest(".mark-chip");
+  if (!chip) return;
+  pageIndex = Number(chip.dataset.page);
+  renderPage();
 });
 
 backBtn.addEventListener("click", closeBook);

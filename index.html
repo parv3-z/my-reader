@@ -35,13 +35,17 @@
 
     <!-- top bar, hidden until tapped -->
     <header id="reader-bar" class="reader-bar">
-      <button id="back-btn" class="icon-btn" aria-label="Back to library">‹ Library</button>
-      <span id="reader-title" class="reader-title"></span>
-      <div class="type-controls">
-        <button id="theme-toggle" class="icon-btn theme-swatch" aria-label="Toggle reading mode"></button>
-        <button id="font-smaller" class="icon-btn" aria-label="Smaller text">A−</button>
-        <button id="font-larger" class="icon-btn" aria-label="Larger text">A+</button>
+      <div class="reader-bar-row">
+        <button id="back-btn" class="icon-btn" aria-label="Back to library">‹ Library</button>
+        <span id="reader-title" class="reader-title"></span>
+        <div class="type-controls">
+          <button id="bookmark-toggle" class="icon-btn bookmark-btn" aria-label="Bookmark this page">🔖</button>
+          <button id="theme-toggle" class="icon-btn theme-swatch" aria-label="Toggle reading mode"></button>
+          <button id="font-smaller" class="icon-btn" aria-label="Smaller text">A−</button>
+          <button id="font-larger" class="icon-btn" aria-label="Larger text">A+</button>
+        </div>
       </div>
+      <div id="marks-row" class="marks-row" hidden></div>
     </header>
 
     <div id="page-loading" class="page-loading" hidden>Opening book…</div>
