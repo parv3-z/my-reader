@@ -49,7 +49,6 @@ const pageNumberTop = document.getElementById("page-number-top");
 const progressFill = document.getElementById("progress-fill");
 const locationLabel = document.getElementById("location-label");
 const percentLabel = document.getElementById("percent-label");
-const tapToggle = document.getElementById("tap-toggle");
 const prevBtn = document.getElementById("prev-btn");
 const nextBtn = document.getElementById("next-btn");
 const fontSmaller = document.getElementById("font-smaller");
@@ -319,7 +318,7 @@ themeToggle.addEventListener("click", () => {
 backBtn.addEventListener("click", closeBook);
 nextBtn.addEventListener("click", goNext);
 prevBtn.addEventListener("click", goPrev);
-tapToggle.addEventListener("click", toggleBar);
+pageEl.addEventListener("click", toggleBar);
 
 // swipe left/right to turn pages (mobile). Only fires on a mostly-horizontal
 // drag so it never fights with vertical scrolling inside a page.

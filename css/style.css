@@ -225,6 +225,7 @@ body[data-theme="sepia"] .theme-swatch { background: #edebe4; }
   position: relative;
   flex: 1;
   overflow: hidden;
+  cursor: pointer;
 }
 
 .page-number-top {
@@ -275,14 +276,9 @@ body[data-theme="sepia"] .theme-swatch { background: #edebe4; }
 
 .page-content p.continued { text-indent: 0; }
 
-/* single full-page tap zone — toggles the toolbar, doesn't block scrolling
-   because a drag/scroll gesture never fires a click event */
-.tap-zone {
-  position: absolute;
-  top: 56px; bottom: 78px;
-  left: 0; right: 10px;
-  z-index: 10;
-}
+/* single full-page tap target — toggles the toolbar. It's just a plain
+   click listener on the page itself now (not a separate overlay div),
+   so it never intercepts scroll/swipe touches meant for the content. */
 
 .page-footer {
   height: 78px;
